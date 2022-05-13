@@ -38,12 +38,33 @@ namespace micro_clap_host
 
         static uint32_t size(const clap_input_events *e)
         {
-            return 0;
+            auto mie = static_cast<micro_input_events *>(e->ctx);
+            return mie->sz;
         }
 
         static const clap_event_header_t *get(const clap_input_events *e, uint32_t index)
         {
-            return 0;
+            auto mie = static_cast<micro_input_events *>(e->ctx);
+            assert(index >= 0);
+            assert(index < max_events);
+            uint8_t *ptr = &(mie->data[index * max_evt_size]);
+            return reinterpret_cast<clap_event_header_t*>(ptr);
+        }
+
+        template<typename T>
+        static void push(clap_input_events *e, const T& t)
+        {
+            auto mie = static_cast<micro_input_events *>(e->ctx);
+            assert(t.header.size <= max_evt_size);
+            assert(mie->sz < max_events - 1);
+            uint8_t *ptr = &(mie->data[mie->sz * max_evt_size]);
+            memcpy(ptr, &t, t.header.size);
+            mie->sz ++;
+        }
+
+        static void reset(clap_input_events *e) {
+            auto mie = static_cast<micro_input_events *>(e->ctx);
+            mie->sz = 0;
         }
     };
 }

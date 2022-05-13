@@ -19,7 +19,7 @@ struct rtaudio_userdata
     clap_input_events_t inEvents;
     clap_output_events_t outEvents;
 
-    double priorTime{0};
+    double priorTime{-1};
 };
 
 int processLoop( void *outputBuffer, void *inputBuffer, unsigned int nBufferFrames,
@@ -27,6 +27,29 @@ int processLoop( void *outputBuffer, void *inputBuffer, unsigned int nBufferFram
 {
     auto aud = (rtaudio_userdata *)userData;
 
+    int ptt2 = (int)(aud->priorTime * 2);
+    int ttt2 = (int)(streamTime * 2);
+
+    if (ptt2 != ttt2)
+    {
+        auto evt = clap_event_note();
+        evt.header.size = sizeof(clap_event_note);
+        evt.header.type = (uint16_t)CLAP_EVENT_NOTE_ON;
+        evt.header.time = 0;
+        evt.header.space_id = CLAP_CORE_EVENT_SPACE_ID;
+        evt.header.flags = 0;
+        evt.port_index = 0;
+        evt.channel = 0;
+        evt.key = 60;
+        evt.velocity = 1.0;
+
+        if (ttt2 % 2 == 1)
+        {
+            evt.header.type = (uint16_t)CLAP_EVENT_NOTE_OFF;
+        }
+
+        micro_clap_host::micro_input_events::push(&(aud->inEvents), evt);
+    }
 
     if (!aud->isStarted)
     {
@@ -50,6 +73,8 @@ int processLoop( void *outputBuffer, void *inputBuffer, unsigned int nBufferFram
     process.out_events = &(aud->outEvents);
 
     aud->plugin->process(aud->plugin, &process);
+
+    micro_clap_host::micro_input_events::reset(&(aud->inEvents));
 
     // RTAudio has interleaved data
     float *buffer = (float *)(outputBuffer);
