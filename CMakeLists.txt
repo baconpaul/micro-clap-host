@@ -12,12 +12,21 @@ set(CMAKE_CXX_STANDARD 17)
 add_subdirectory(libs/clap)
 add_subdirectory(libs/replxx)
 add_subdirectory(libs/rtaudio)
+set(SANITIZE TRUE)
 
-add_executable(${PROJECT_NAME} src/main.cpp src/resolve_entrypoint.cpp)
+add_executable(${PROJECT_NAME} src/main.cpp src/resolve_entrypoint.cpp src/host-impl.cpp)
 
 if (APPLE)
     target_compile_definitions(${PROJECT_NAME} PRIVATE MAC=1)
     target_link_libraries(${PROJECT_NAME} PRIVATE dl "-framework CoreFoundation")
+    target_compile_options(${PROJECT_NAME} PRIVATE
+            $<$<BOOL:${SANITIZE}>:-fsanitize=address>
+            $<$<BOOL:${SANITIZE}>:-fsanitize=undefined>
+    )
+    target_link_options(${PROJECT_NAME} PRIVATE
+            $<$<BOOL:${SANITIZE}>:-fsanitize=address>
+            $<$<BOOL:${SANITIZE}>:-fsanitize=undefined>
+    )
 elseif(UNIX)
     target_compile_definitions(${PROJECT_NAME} PRIVATE LIN=1)
 else()
