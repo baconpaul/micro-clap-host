@@ -9,6 +9,8 @@
 #include <clap/ext/params.h>
 #include <clap/ext/audio-ports.h>
 
+#include <unordered_map>
+
 struct rtaudio_userdata
 {
     const clap_plugin_t *plugin;
@@ -20,6 +22,8 @@ struct rtaudio_userdata
     clap_output_events_t outEvents;
 
     double priorTime{-1};
+
+    std::unordered_map<uint32_t, clap_param_info> paramInfo;
 };
 
 int processLoop( void *outputBuffer, void *inputBuffer, unsigned int nBufferFrames,
@@ -50,6 +54,26 @@ int processLoop( void *outputBuffer, void *inputBuffer, unsigned int nBufferFram
 
         micro_clap_host::micro_input_events::push(&(aud->inEvents), evt);
     }
+
+    // I happen to know (from the printout) that surge param 0xa661c071 is
+    // the sine oscillator pitch so lets just mod that. A more robust host should
+    // check if something can be set
+    auto valset = clap_event_param_value();
+    valset.header.size = sizeof(clap_event_param_value);
+    valset.header.type = (uint16_t)CLAP_EVENT_PARAM_VALUE;
+    valset.header.time = 0;
+    valset.header.space_id = CLAP_CORE_EVENT_SPACE_ID;
+    valset.header.flags = 0;
+    valset.param_id = 0xa661c071;
+    valset.note_id = -1;
+    valset.port_index = -1;
+    valset.channel = -1;
+    valset.key = -1;
+    valset.value = streamTime - (int)streamTime;
+    valset.cookie = aud->paramInfo[0xa661c071].cookie;
+
+    micro_clap_host::micro_input_events::push(&(aud->inEvents), valset);
+
 
     if (!aud->isStarted)
     {
@@ -152,6 +176,9 @@ int main(int argc, char **argv)
     auto host = micro_clap_host::createMicroHost();
     auto inst = fac->create_plugin(fac, host, desc->id);
 
+    rtaudio_userdata aud;
+    aud.plugin = inst;
+
     // At this point we need a samplerate so get our audio info
     RtAudio audio;
     auto audioout = audio.getDefaultOutputDevice();
@@ -172,6 +199,7 @@ int main(int argc, char **argv)
             clap_param_info_t inf;
             inst_param->get_info(inst, i, &inf);
             std::cout << i << " " << inf.module << " " << inf.name << " (id=0x" << std::hex << inf.id << std::dec << ")" << std::endl;
+            aud.paramInfo[inf.id] = inf;
         }
 
     }
@@ -218,8 +246,7 @@ int main(int argc, char **argv)
     unsigned int sampleRate = audioinfo.preferredSampleRate;
     unsigned int bufferFrames = 256; // 256 sample frames
 
-    rtaudio_userdata aud;
-    aud.plugin = inst;
+
     aud.inPorts = inPorts;
     aud.outPorts = outPorts;
 
