@@ -5,11 +5,17 @@
 #ifndef MICRO_CLAP_HOST_MICRO_CLAP_HOST_H
 #define MICRO_CLAP_HOST_MICRO_CLAP_HOST_H
 
+#include <filesystem>
+#include <cassert>
+#include <unordered_map>
+
 #include <clap/entry.h>
 #include <clap/host.h>
 #include <clap/events.h>
-#include <filesystem>
-#include <cassert>
+
+#include <clap/ext/params.h>
+#include <clap/ext/audio-ports.h>
+
 
 namespace micro_clap_host
 {
@@ -18,6 +24,26 @@ namespace micro_clap_host
     clap_plugin_entry_t *entryFromClapPath(const std::filesystem::path &p);
 
     clap_host_t *createMicroHost();
+
+
+    struct audiothread_userdata
+    {
+        const clap_plugin_t *plugin;
+        bool isStarted{false};
+        int inPorts, outPorts;
+        clap_audio_buffer *inBuffers, *outBuffers;
+
+        clap_input_events_t inEvents;
+        clap_output_events_t outEvents;
+
+        double priorTime{-1};
+
+        std::unordered_map<uint32_t, clap_param_info> paramInfo;
+    };
+
+    clap_process_status audiothread_operate(audiothread_userdata *,
+                                            uint32_t nSamples,
+                                            double streamTime);
 
     struct micro_input_events
     {

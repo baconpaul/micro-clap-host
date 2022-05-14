@@ -20,7 +20,11 @@ add_subdirectory(libs/rtaudio)
 # use asan on mac
 set(SANITIZE TRUE)
 
-add_executable(${PROJECT_NAME} src/main.cpp src/resolve_entrypoint.cpp src/host-impl.cpp)
+add_executable(${PROJECT_NAME}
+        src/main.cpp
+        src/audio-thread.cpp
+        src/resolve_entrypoint.cpp
+        src/host-impl.cpp)
 
 if (APPLE)
     target_compile_definitions(${PROJECT_NAME} PRIVATE MAC=1)
