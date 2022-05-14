@@ -16,37 +16,36 @@
 namespace micro_clap_host
 {
 #if MAC
-    clap_plugin_entry_t *entryFromClapPath(const std::filesystem::path &p)
-    {
-        auto ps = p.u8string();
-        auto cs = CFStringCreateWithBytes(kCFAllocatorDefault, (uint8_t *)ps.c_str(), ps.size(), kCFStringEncodingUTF8, false);
-        auto bundleURL = CFURLCreateWithFileSystemPath(kCFAllocatorDefault,
-                                                       cs,
-                                                       kCFURLPOSIXPathStyle,
-                                                       true);
+clap_plugin_entry_t *entryFromClapPath(const std::filesystem::path &p)
+{
+    auto ps = p.u8string();
+    auto cs = CFStringCreateWithBytes(kCFAllocatorDefault, (uint8_t *)ps.c_str(), ps.size(),
+                                      kCFStringEncodingUTF8, false);
+    auto bundleURL =
+        CFURLCreateWithFileSystemPath(kCFAllocatorDefault, cs, kCFURLPOSIXPathStyle, true);
 
-        auto bundle = CFBundleCreate(kCFAllocatorDefault, bundleURL);
+    auto bundle = CFBundleCreate(kCFAllocatorDefault, bundleURL);
 
+    auto db = CFBundleGetDataPointerForName(bundle, CFSTR("clap_entry"));
 
-        auto db = CFBundleGetDataPointerForName(bundle, CFSTR("clap_entry"));
+    CFRelease(bundle);
+    CFRelease(bundleURL);
+    CFRelease(cs);
 
-        CFRelease(bundle);
-        CFRelease(bundleURL);
-        CFRelease(cs);
-
-        return (clap_plugin_entry_t *)db;
-    }
+    return (clap_plugin_entry_t *)db;
+}
 #endif
 
 #if WIN
-    clap_plugin_entry_t *entryFromClapPath(const std::filesystem::path &p) {
-        auto han = LoadLibrary((LPCSTR)(p.generic_string().c_str()));
-        if (!han)
-            return nullptr;
-        auto phan = GetProcAddress(han, "clap_entry");
-        std::cout << "phan is " << phan << std::endl;
-        return (clap_plugin_entry_t *)phan;
-    }
+clap_plugin_entry_t *entryFromClapPath(const std::filesystem::path &p)
+{
+    auto han = LoadLibrary((LPCSTR)(p.generic_string().c_str()));
+    if (!han)
+        return nullptr;
+    auto phan = GetProcAddress(han, "clap_entry");
+    std::cout << "phan is " << phan << std::endl;
+    return (clap_plugin_entry_t *)phan;
+}
 #endif
 
-}
+} // namespace micro_clap_host

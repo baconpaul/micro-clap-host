@@ -3,6 +3,7 @@
 //
 
 #include "micro-clap-host.h"
+#include "RtAudio.h"
 
 namespace micro_clap_host
 {
@@ -78,4 +79,27 @@ clap_process_status audiothread_operate(audiothread_userdata *aud, uint32_t nSam
     aud->priorTime = streamTime;
     return res;
 }
+
+} // namespace micro_clap_host
+
+int rtaudioToClap(void *outputBuffer, void *inputBuffer, unsigned int nBufferFrames,
+                  double streamTime, RtAudioStreamStatus status, void *userData)
+{
+    auto aud = (micro_clap_host::audiothread_userdata *)userData;
+    auto clapstatus = micro_clap_host::audiothread_operate(aud, nBufferFrames, streamTime);
+
+    // RTAudio has interleaved data
+    float *buffer = (float *)(outputBuffer);
+    for (int i = 0; i < nBufferFrames; ++i)
+    {
+        *buffer = aud->outBuffers->data32[0][i];
+        buffer++;
+        *buffer = aud->outBuffers->data32[1][i];
+        buffer++;
+    }
+
+    if (clapstatus == CLAP_PROCESS_CONTINUE)
+        return 0;
+    else
+        return 0;
 }

@@ -11,28 +11,9 @@
 
 #include <unordered_map>
 
-
-int processLoop( void *outputBuffer, void *inputBuffer, unsigned int nBufferFrames,
-                double streamTime, RtAudioStreamStatus status, void *userData )
-{
-    auto aud = (micro_clap_host::audiothread_userdata *)userData;
-    auto clapstatus = micro_clap_host::audiothread_operate(aud, nBufferFrames, streamTime);
-
-    // RTAudio has interleaved data
-    float *buffer = (float *)(outputBuffer);
-    for (int i=0; i<nBufferFrames; ++i)
-    {
-        *buffer = aud->outBuffers->data32[0][i];
-        buffer ++;
-        *buffer = aud->outBuffers->data32[1][i];
-        buffer ++;
-    }
-
-    if (clapstatus == CLAP_PROCESS_CONTINUE)
-        return 0;
-    else
-        return 0;
-}
+// in audio-thread.cpp at the bottom
+extern int rtaudioToClap(void *outputBuffer, void *inputBuffer, unsigned int nBufferFrames,
+                         double streamTime, RtAudioStreamStatus status, void *userData);
 
 int main(int argc, char **argv)
 {
@@ -61,7 +42,8 @@ int main(int argc, char **argv)
     }
 
     auto version = entry->clap_version;
-    std::cout << "Clap Version        : " << version.major << "." << version.minor << "." << version.revision << std::endl;
+    std::cout << "Clap Version        : " << version.major << "." << version.minor << "."
+              << version.revision << std::endl;
 
     entry->init(clap.c_str());
 
@@ -84,9 +66,9 @@ int main(int argc, char **argv)
               << "   features : ";
     auto f = desc->features;
     auto pre = std::string();
-    while( f[0] )
+    while (f[0])
     {
-        std::cout << pre   << f[0];
+        std::cout << pre << f[0];
         pre = ", ";
         f++;
     }
@@ -113,15 +95,14 @@ int main(int argc, char **argv)
         auto pc = inst_param->count(inst);
         std::cout << "Plugin has " << pc << " params " << std::endl;
 
-
-        for (int i=0; i<pc; ++i)
+        for (int i = 0; i < pc; ++i)
         {
             clap_param_info_t inf;
             inst_param->get_info(inst, i, &inf);
-            std::cout << i << " " << inf.module << " " << inf.name << " (id=0x" << std::hex << inf.id << std::dec << ")" << std::endl;
+            std::cout << i << " " << inf.module << " " << inf.name << " (id=0x" << std::hex
+                      << inf.id << std::dec << ")" << std::endl;
             aud.paramInfo[inf.id] = inf;
         }
-
     }
     else
     {
@@ -156,8 +137,8 @@ int main(int argc, char **argv)
         std::cout << "No ports extension" << std::endl;
     }
 
-    std::cout << "Starting audio stream on default output "
-              << audioinfo.name << " at " << audioinfo.sampleRates[0] << std::endl;
+    std::cout << "Starting audio stream on default output " << audioinfo.name << " at "
+              << audioinfo.sampleRates[0] << std::endl;
 
     RtAudio::StreamParameters parameters;
     parameters.deviceId = audio.getDefaultOutputDevice();
@@ -166,18 +147,17 @@ int main(int argc, char **argv)
     unsigned int sampleRate = audioinfo.preferredSampleRate;
     unsigned int bufferFrames = 256; // 256 sample frames
 
-
     aud.inPorts = inPorts;
     aud.outPorts = outPorts;
 
     if (aud.inPorts)
     {
         aud.inBuffers = (clap_audio_buffer_t *)malloc(aud.inPorts * sizeof(clap_audio_buffer_t));
-        for (int i=0; i<aud.inPorts; ++i)
+        for (int i = 0; i < aud.inPorts; ++i)
         {
             aud.inBuffers[i].data32 = (float **)malloc(2 * sizeof(float *));
-            aud.inBuffers[i].data32[0]  = (float *)malloc(bufferFrames * sizeof(float));
-            aud.inBuffers[i].data32[1]  = (float *)malloc(bufferFrames * sizeof(float));
+            aud.inBuffers[i].data32[0] = (float *)malloc(bufferFrames * sizeof(float));
+            aud.inBuffers[i].data32[1] = (float *)malloc(bufferFrames * sizeof(float));
             aud.inBuffers[i].data64 = nullptr;
             aud.inBuffers[i].channel_count = 2;
             aud.inBuffers[i].latency = 0;
@@ -196,11 +176,11 @@ int main(int argc, char **argv)
     if (aud.outPorts)
     {
         aud.outBuffers = (clap_audio_buffer_t *)malloc(aud.outPorts * sizeof(clap_audio_buffer_t));
-        for (int i=0; i<aud.outPorts; ++i)
+        for (int i = 0; i < aud.outPorts; ++i)
         {
             aud.outBuffers[i].data32 = (float **)malloc(2 * sizeof(float *));
-            aud.outBuffers[i].data32[0]  = (float *)malloc(bufferFrames * sizeof(float));
-            aud.outBuffers[i].data32[1]  = (float *)malloc(bufferFrames * sizeof(float));
+            aud.outBuffers[i].data32[0] = (float *)malloc(bufferFrames * sizeof(float));
+            aud.outBuffers[i].data32[1] = (float *)malloc(bufferFrames * sizeof(float));
 
             aud.outBuffers[i].data64 = nullptr;
             aud.outBuffers[i].channel_count = 2;
@@ -215,19 +195,19 @@ int main(int argc, char **argv)
         aud.outBuffers = nullptr;
     }
 
-    audio.openStream( &parameters, NULL, RTAUDIO_FLOAT32,
-                      sampleRate, &bufferFrames, &processLoop, (void *)&aud );
+    audio.openStream(&parameters, NULL, RTAUDIO_FLOAT32, sampleRate, &bufferFrames, &rtaudioToClap,
+                     (void *)&aud);
     audio.startStream();
 
     char input;
     std::cout << "\nPlaying ... press <enter> a few times to quit.\n";
-    std::cin.get( input );
-
+    std::cin.get(input);
 
     std::cout << "Cleaning Up" << std::endl;
     audio.stopStream();
 
-    if ( audio.isStreamOpen() ) audio.closeStream();
+    if (audio.isStreamOpen())
+        audio.closeStream();
 
     // cleanup that memory
     std::cout << "DEALLOC" << std::endl;
