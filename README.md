@@ -5,7 +5,8 @@ of how to clap host.
 
 Here's instructions
 
-1. Install Surge XT and the clap. (Install other claps if you want but see below).
+1. Install Surge XT and the clap. (Install other claps if you want but one of the modulations in).
+main is tied to a particular surge paramid).
 2. Build this
 ```bash
 git clone (repo)

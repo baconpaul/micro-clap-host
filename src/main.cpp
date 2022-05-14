@@ -204,9 +204,17 @@ int main(int argc, char **argv)
 
     // Finally set up our generators
     aud.generators.push_back(std::make_unique<micro_clap_host::generators::random_notes>());
-    aud.generators.push_back(
-        std::make_unique<micro_clap_host::generators::sawtooth_01_param>(0xa661c071, 0.7));
 
+    if (aud.paramInfo.find(0xa661c071) != aud.paramInfo.end())
+    {
+        aud.generators.push_back(
+            std::make_unique<micro_clap_host::generators::sawtooth_01_param>(0xa661c071, 0.7));
+    }
+    else
+    {
+        std::cout << "You may not be surge since I couldn't find 0xa661c071 (osc1 pitch)"
+                  << std::endl;
+    }
     audio.openStream(&parameters, nullptr, RTAUDIO_FLOAT32, sampleRate, &bufferFrames,
                      &rtaudioToClap, (void *)&aud);
     audio.startStream();
