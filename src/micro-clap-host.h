@@ -25,12 +25,14 @@ clap_plugin_entry_t *entryFromClapPath(const std::filesystem::path &p);
 
 clap_host_t *createMicroHost();
 
+struct audiothread_userdata;
+
 // An interface that, on the audio thread, we can call
 // to generate audio thread events like notes or modulations
 struct event_generator
 {
     virtual ~event_generator() = default;
-    virtual void process(clap_output_events_t *, uint32_t nSamples) = 0;
+    virtual void process(audiothread_userdata *, uint32_t nSamples) = 0;
 };
 
 struct audiothread_userdata
@@ -95,6 +97,46 @@ struct micro_input_events
     static void reset(clap_input_events *e)
     {
         auto mie = static_cast<micro_input_events *>(e->ctx);
+        mie->sz = 0;
+    }
+};
+
+struct micro_output_events
+{
+    static constexpr int max_evt_size = 10 * 1024;
+    static constexpr int max_events = 4096;
+    uint8_t data[max_evt_size * max_events];
+    uint32_t sz{0};
+
+    static void setup(clap_output_events *evt)
+    {
+        evt->ctx = new micro_output_events();
+        evt->try_push = try_push;
+    }
+    static void destroy(clap_output_events *evt) { delete (micro_output_events *)evt->ctx; }
+
+
+    static bool try_push(const struct clap_output_events *list, const clap_event_header_t *event)
+    {
+        auto mie = static_cast<micro_output_events *>(list->ctx);
+        if (mie->sz >= max_events || event->size >= max_evt_size)
+            return false;
+
+        uint8_t *ptr = &(mie->data[mie->sz * max_evt_size]);
+        memcpy(ptr, event, event->size);
+        mie->sz++;
+        return true;
+    }
+
+    static uint32_t size(clap_output_events *e)
+    {
+        auto mie = static_cast<micro_output_events *>(e->ctx);
+        return mie->sz;
+    }
+
+    static void reset(clap_output_events *e)
+    {
+        auto mie = static_cast<micro_output_events *>(e->ctx);
         mie->sz = 0;
     }
 };

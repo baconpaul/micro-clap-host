@@ -10,29 +10,8 @@ namespace micro_clap_host
 clap_process_status audiothread_operate(audiothread_userdata *aud, uint32_t nSamples,
                                         double streamTime)
 {
-    int ptt2 = (int)(aud->priorTime * 2);
-    int ttt2 = (int)(streamTime * 2);
-
-    if (ptt2 != ttt2)
-    {
-        auto evt = clap_event_note();
-        evt.header.size = sizeof(clap_event_note);
-        evt.header.type = (uint16_t)CLAP_EVENT_NOTE_ON;
-        evt.header.time = 0;
-        evt.header.space_id = CLAP_CORE_EVENT_SPACE_ID;
-        evt.header.flags = 0;
-        evt.port_index = 0;
-        evt.channel = 0;
-        evt.key = 60;
-        evt.velocity = 1.0;
-
-        if (ttt2 % 2 == 1)
-        {
-            evt.header.type = (uint16_t)CLAP_EVENT_NOTE_OFF;
-        }
-
-        micro_clap_host::micro_input_events::push(&(aud->inEvents), evt);
-    }
+    for (const auto &g : aud->generators)
+        g->process(aud, nSamples);
 
     // I happen to know (from the printout) that surge param 0xa661c071 is
     // the sine oscillator pitch so lets just mod that. A more robust host should
@@ -74,6 +53,12 @@ clap_process_status audiothread_operate(audiothread_userdata *aud, uint32_t nSam
 
     auto res = aud->plugin->process(aud->plugin, &process);
 
+    auto outE = micro_clap_host::micro_output_events::size(&(aud->outEvents));
+    if (outE > 0)
+    {
+        // std::cout << "Ignoring output events. Count=" << outE << std::endl;
+    }
+    micro_clap_host::micro_output_events::reset(&(aud->outEvents));
     micro_clap_host::micro_input_events::reset(&(aud->inEvents));
 
     aud->priorTime = streamTime;

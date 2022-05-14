@@ -2,6 +2,7 @@
 #include <filesystem>
 
 #include "micro-clap-host.h"
+#include "generators.h"
 
 #include "RtAudio.h"
 
@@ -152,7 +153,7 @@ int main(int argc, char **argv)
 
     if (aud.inPorts)
     {
-        aud.inBuffers = (clap_audio_buffer_t *)malloc(aud.inPorts * sizeof(clap_audio_buffer_t));
+        aud.inBuffers = new clap_audio_buffer_t[aud.inPorts];
         for (int i = 0; i < aud.inPorts; ++i)
         {
             aud.inBuffers[i].data32 = (float **)malloc(2 * sizeof(float *));
@@ -172,10 +173,11 @@ int main(int argc, char **argv)
     }
 
     micro_clap_host::micro_input_events::setup(&(aud.inEvents));
+    micro_clap_host::micro_output_events::setup(&(aud.outEvents));
 
     if (aud.outPorts)
     {
-        aud.outBuffers = (clap_audio_buffer_t *)malloc(aud.outPorts * sizeof(clap_audio_buffer_t));
+        aud.outBuffers = new clap_audio_buffer_t[aud.outPorts];
         for (int i = 0; i < aud.outPorts; ++i)
         {
             aud.outBuffers[i].data32 = (float **)malloc(2 * sizeof(float *));
@@ -195,7 +197,10 @@ int main(int argc, char **argv)
         aud.outBuffers = nullptr;
     }
 
-    audio.openStream(&parameters, NULL, RTAUDIO_FLOAT32, sampleRate, &bufferFrames, &rtaudioToClap,
+    // Finally set up our generators
+    aud.generators.push_back(std::make_unique<micro_clap_host::generators::random_notes>());
+
+    audio.openStream(&parameters, nullptr, RTAUDIO_FLOAT32, sampleRate, &bufferFrames, &rtaudioToClap,
                      (void *)&aud);
     audio.startStream();
 
@@ -210,9 +215,30 @@ int main(int argc, char **argv)
         audio.closeStream();
 
     // cleanup that memory
-    std::cout << "DEALLOC" << std::endl;
+    if (aud.inPorts)
+    {
+        for (int i=0; i<aud.inPorts; ++i)
+        {
+            free(aud.inBuffers[i].data32[0]);
+            free(aud.inBuffers[i].data32[1]);
+            free(aud.inBuffers[i].data32);
+        }
+        delete[] aud.inBuffers;
+    }
+
+    if (aud.outPorts)
+    {
+        for (int i=0; i<aud.outPorts; ++i)
+        {
+            free(aud.outBuffers[i].data32[0]);
+            free(aud.outBuffers[i].data32[1]);
+            free(aud.outBuffers[i].data32);
+        }
+        delete[] aud.outBuffers;
+    }
 
     micro_clap_host::micro_input_events::destroy(&(aud.inEvents));
+    micro_clap_host::micro_output_events::destroy(&(aud.outEvents));
 
     inst->deactivate(inst);
     inst->destroy(inst);
