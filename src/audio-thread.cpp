@@ -30,7 +30,7 @@ clap_process_status audiothread_operate(audiothread_userdata *aud, uint32_t nSam
     valset.value = streamTime - (int)streamTime;
     valset.cookie = aud->paramInfo[0xa661c071].cookie;
 
-    micro_clap_host::micro_input_events::push(&(aud->inEvents), valset);
+    // micro_clap_host::micro_input_events::push(&(aud->inEvents), valset);
 
     if (!aud->isStarted)
     {
@@ -61,7 +61,6 @@ clap_process_status audiothread_operate(audiothread_userdata *aud, uint32_t nSam
     micro_clap_host::micro_output_events::reset(&(aud->outEvents));
     micro_clap_host::micro_input_events::reset(&(aud->inEvents));
 
-    aud->priorTime = streamTime;
     return res;
 }
 

@@ -100,9 +100,14 @@ int main(int argc, char **argv)
         {
             clap_param_info_t inf;
             inst_param->get_info(inst, i, &inf);
-            std::cout << i << " " << inf.module << " " << inf.name << " (id=0x" << std::hex
-                      << inf.id << std::dec << ")" << std::endl;
             aud.paramInfo[inf.id] = inf;
+
+            double d;
+            inst_param->get_value(inst, inf.id, &d);
+            aud.initialParamValues[inf.id] = d;
+
+            std::cout << i << " " << inf.module << " " << inf.name << " (id=0x" << std::hex
+                      << inf.id << std::dec << ") val=" << d << std::endl;
         }
     }
     else
@@ -199,9 +204,11 @@ int main(int argc, char **argv)
 
     // Finally set up our generators
     aud.generators.push_back(std::make_unique<micro_clap_host::generators::random_notes>());
+    aud.generators.push_back(
+        std::make_unique<micro_clap_host::generators::sawtooth_01_param>(0xa661c071, 0.7));
 
-    audio.openStream(&parameters, nullptr, RTAUDIO_FLOAT32, sampleRate, &bufferFrames, &rtaudioToClap,
-                     (void *)&aud);
+    audio.openStream(&parameters, nullptr, RTAUDIO_FLOAT32, sampleRate, &bufferFrames,
+                     &rtaudioToClap, (void *)&aud);
     audio.startStream();
 
     char input;
@@ -217,7 +224,7 @@ int main(int argc, char **argv)
     // cleanup that memory
     if (aud.inPorts)
     {
-        for (int i=0; i<aud.inPorts; ++i)
+        for (int i = 0; i < aud.inPorts; ++i)
         {
             free(aud.inBuffers[i].data32[0]);
             free(aud.inBuffers[i].data32[1]);
@@ -228,7 +235,7 @@ int main(int argc, char **argv)
 
     if (aud.outPorts)
     {
-        for (int i=0; i<aud.outPorts; ++i)
+        for (int i = 0; i < aud.outPorts; ++i)
         {
             free(aud.outBuffers[i].data32[0]);
             free(aud.outBuffers[i].data32[1]);

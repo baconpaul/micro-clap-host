@@ -45,9 +45,8 @@ struct audiothread_userdata
     clap_input_events_t inEvents;
     clap_output_events_t outEvents;
 
-    double priorTime{-1};
-
     std::unordered_map<uint32_t, clap_param_info> paramInfo;
+    std::unordered_map<uint32_t, double> initialParamValues;
     std::list<std::unique_ptr<event_generator>> generators;
 };
 
@@ -114,7 +113,6 @@ struct micro_output_events
         evt->try_push = try_push;
     }
     static void destroy(clap_output_events *evt) { delete (micro_output_events *)evt->ctx; }
-
 
     static bool try_push(const struct clap_output_events *list, const clap_event_header_t *event)
     {

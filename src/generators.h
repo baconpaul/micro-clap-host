@@ -31,12 +31,13 @@ struct random_notes : micro_clap_host::event_generator
             n = -1;
     }
 
-    inline float rn() { return distribution(generator);}
-    void process(audiothread_userdata *aud, uint32_t nSamples) override {
+    inline float rn() { return distribution(generator); }
+    void process(audiothread_userdata *aud, uint32_t nSamples) override
+    {
         // assume sr like 44100 so 4410 or 4000 is about 1/10th of a second.
         // Randomly start a note about every that often but 4096 makes the math
         // faster so
-        if ((currentSample & (4096-1)) > ((currentSample + nSamples) & (4096-1)))
+        if ((currentSample & (4096 - 1)) > ((currentSample + nSamples) & (4096 - 1)))
         {
             if (rn() > 0.6)
             {
@@ -50,7 +51,7 @@ struct random_notes : micro_clap_host::event_generator
                 {
                     // NOTE ON
                     // int n = floor(rn() * 127);
-                    int n = floor( rn() * 36) + 48; // 4 octaves mid keyboard
+                    int n = floor(rn() * 36) + 48; // 4 octaves mid keyboard
                     if (noteIds[n] >= 0)
                     {
                         postEvent = false;
@@ -66,9 +67,9 @@ struct random_notes : micro_clap_host::event_generator
                 {
                     evtType = CLAP_EVENT_NOTE_OFF;
                     // NOTE OFF
-                    int which = std::clamp((uint32_t)(rn() * numOn), 0U, numOn-1);
+                    int which = std::clamp((uint32_t)(rn() * numOn), 0U, numOn - 1);
 
-                    for (int i=0; i<127; ++i)
+                    for (int i = 0; i < 127; ++i)
                     {
                         if (noteIds[i] >= 0)
                         {
@@ -84,7 +85,7 @@ struct random_notes : micro_clap_host::event_generator
                     {
                         nid = noteIds[key];
                         noteIds[key] = -1;
-                        numOn --;
+                        numOn--;
                     }
                     else
                     {
@@ -112,7 +113,47 @@ struct random_notes : micro_clap_host::event_generator
         currentSample += nSamples;
     }
 };
-}
-}
+
+// sawtooth every 48k samples or so
+struct sawtooth_01_param : micro_clap_host::event_generator
+{
+    uint32_t param_id;
+    double depth;
+    uint32_t currentSample{0};
+
+    sawtooth_01_param(uint32_t pid, double d) : param_id(pid), depth(d) {}
+
+    void process(audiothread_userdata *aud, uint32_t nSamples) override
+    {
+        for (int s = 0; s < nSamples; s += 64)
+        {
+            auto ts = (currentSample + s) % 48000;
+            double phs = ts / 48000.0;
+            double mod = phs * depth;
+
+            double val = aud->initialParamValues[param_id] + mod;
+
+            auto valset = clap_event_param_value();
+            valset.header.size = sizeof(clap_event_param_value);
+            valset.header.type = (uint16_t)CLAP_EVENT_PARAM_VALUE;
+            valset.header.time = 0;
+            valset.header.space_id = CLAP_CORE_EVENT_SPACE_ID;
+            valset.header.flags = 0;
+            valset.param_id = param_id;
+            valset.note_id = -1;
+            valset.port_index = -1;
+            valset.channel = -1;
+            valset.key = -1;
+            valset.value = val;
+            valset.cookie = aud->paramInfo[param_id].cookie;
+
+            micro_clap_host::micro_input_events::push(&(aud->inEvents), valset);
+        }
+
+        currentSample += nSamples;
+    }
+};
+} // namespace generators
+} // namespace micro_clap_host
 
 #endif // MICRO_CLAP_HOST_GENERATORS_H
