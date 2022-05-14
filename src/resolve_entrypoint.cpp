@@ -9,6 +9,10 @@
 #include <CoreFoundation/CoreFoundation.h>
 #endif
 
+#if WIN
+#include <windows.h>
+#endif
+
 namespace micro_clap_host
 {
 #if MAC
@@ -33,4 +37,16 @@ namespace micro_clap_host
         return (clap_plugin_entry_t *)db;
     }
 #endif
+
+#if WIN
+    clap_plugin_entry_t *entryFromClapPath(const std::filesystem::path &p) {
+        auto han = LoadLibrary((LPCSTR)(p.generic_string().c_str()));
+        if (!han)
+            return nullptr;
+        auto phan = GetProcAddress(han, "clap_entry");
+        std::cout << "phan is " << phan << std::endl;
+        return (clap_plugin_entry_t *)phan;
+    }
+#endif
+
 }

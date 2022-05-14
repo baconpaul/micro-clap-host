@@ -9,6 +9,7 @@
 #include <clap/host.h>
 #include <clap/events.h>
 #include <filesystem>
+#include <cassert>
 
 namespace micro_clap_host
 {

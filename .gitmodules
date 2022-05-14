@@ -4,6 +4,3 @@
 [submodule "libs/rtaudio"]
 	path = libs/rtaudio
 	url = https://github.com/thestk/rtaudio.git
-[submodule "libs/replxx"]
-	path = libs/replxx
-	url = https://github.com/AmokHuginnsson/replxx.git
