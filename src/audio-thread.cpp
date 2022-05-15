@@ -13,25 +13,6 @@ clap_process_status audiothread_operate(audiothread_userdata *aud, uint32_t nSam
     for (const auto &g : aud->generators)
         g->process(aud, nSamples);
 
-    // I happen to know (from the printout) that surge param 0xa661c071 is
-    // the sine oscillator pitch so lets just mod that. A more robust host should
-    // check if something can be set or mod
-    auto valset = clap_event_param_value();
-    valset.header.size = sizeof(clap_event_param_value);
-    valset.header.type = (uint16_t)CLAP_EVENT_PARAM_VALUE;
-    valset.header.time = 0;
-    valset.header.space_id = CLAP_CORE_EVENT_SPACE_ID;
-    valset.header.flags = 0;
-    valset.param_id = 0xa661c071;
-    valset.note_id = -1;
-    valset.port_index = -1;
-    valset.channel = -1;
-    valset.key = -1;
-    valset.value = streamTime - (int)streamTime;
-    valset.cookie = aud->paramInfo[0xa661c071].cookie;
-
-    // micro_clap_host::micro_input_events::push(&(aud->inEvents), valset);
-
     if (!aud->isStarted)
     {
         aud->plugin->start_processing(aud->plugin);
