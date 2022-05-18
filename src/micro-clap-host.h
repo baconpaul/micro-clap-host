@@ -9,6 +9,7 @@
 #include <cassert>
 #include <unordered_map>
 #include <list>
+#include <cstring>
 
 #include <clap/entry.h>
 #include <clap/host.h>
