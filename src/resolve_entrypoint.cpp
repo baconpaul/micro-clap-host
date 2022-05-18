@@ -48,4 +48,22 @@ clap_plugin_entry_t *entryFromClapPath(const std::filesystem::path &p)
 }
 #endif
 
+
+#if LIN
+clap_plugin_entry_t *entryFromClapPath(const std::filesystem::path &p)
+{
+    std::cout << "WARNING - THIS CODE IS COMPLETELY UNTESTED" << std::endl;
+    void    *handle;
+    int     *iptr;
+
+    handle = dlopen(p.u8string().c_str(), RTLD_LOCAL | RTLD_LAZY);
+
+    iptr = (int *)dlsym(handle, "clap_entry");
+
+    return (clap_plugin_entry_t *)iptr;
+}
+
+#endif
+
+
 } // namespace micro_clap_host
