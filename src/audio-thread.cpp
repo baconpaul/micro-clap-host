@@ -55,7 +55,7 @@ int rtaudioToClap(void *outputBuffer, void *inputBuffer, unsigned int nBufferFra
 
     // RTAudio has interleaved data
     float *buffer = (float *)(outputBuffer);
-    for (auto i = 0; i < nBufferFrames; ++i)
+    for (auto i = 0U; i < nBufferFrames; ++i)
     {
         *buffer = aud->outBuffers->data32[0][i];
         buffer++;

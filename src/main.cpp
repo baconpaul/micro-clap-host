@@ -96,7 +96,7 @@ int main(int argc, char **argv)
         auto pc = inst_param->count(inst);
         std::cout << "Plugin has " << pc << " params " << std::endl;
 
-        for (int i = 0; i < pc; ++i)
+        for (auto i = 0U; i < pc; ++i)
         {
             clap_param_info_t inf;
             inst_param->get_info(inst, i, &inf);

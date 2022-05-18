@@ -13,6 +13,10 @@
 #include <windows.h>
 #endif
 
+#if LIN
+#include <dlfcn.h>
+#endif
+
 namespace micro_clap_host
 {
 #if MAC

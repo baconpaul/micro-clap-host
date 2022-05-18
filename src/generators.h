@@ -125,7 +125,7 @@ struct sawtooth_01_param : micro_clap_host::event_generator
 
     void process(audiothread_userdata *aud, uint32_t nSamples) override
     {
-        for (auto s = 0; s < nSamples; s += 64)
+        for (auto s = 0U; s < nSamples; s += 64)
         {
             auto ts = (currentSample + s) % 48000;
             double phs = ts / 48000.0;

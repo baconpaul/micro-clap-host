@@ -41,6 +41,7 @@ if (APPLE)
 elseif(UNIX)
     target_compile_definitions(${PROJECT_NAME} PRIVATE LIN=1)
     target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Werror)
+    target_link_libraries(${PROJECT_NAME} PRIVATE -ldl)
 else()
 
     target_compile_definitions(${PROJECT_NAME} PRIVATE WIN=1)
